@@ -2,51 +2,54 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 // ignore: must_be_immutable
-class PBInput extends StatefulWidget {
+class GenericInput extends StatefulWidget {
   final Function(_PBInputContract pbInputContract, String value) onKeyPressed;
-  final Function(String currentText) onPressedSuffixIcon;
   final labelInputText;
-  final suffixIcon;
   final obscureText;
-  TextInputType keyBoardType;
-  final inputFormatters;
-  UnderlineInputBorder typeBorder;
   final focusNode;
   final autoCorret;
   final autoFocus;
-  final messageBottom;
-  final messageIcon;
+  final inputFormatters;
+  TextStyle labelInputTextStyle;
+  String suffixAssetIcon;
+  String suffixNetworkIcon;
+  TextInputType keyBoardType;
+  UnderlineInputBorder typeBorder;
+  String messageBottom;
+  String messageBottomPathIcon;
+  IconData messageBottomDataIcon;
+  bool messageBottomIsError;
+  TextStyle messageBottomStyle;
 
-  PBInput({
-    Key key,
-    @required this.labelInputText,
-    @required this.obscureText,
-    @required this.onKeyPressed,
-    this.suffixIcon,
-    this.onPressedSuffixIcon,
-    this.inputFormatters,
-    this.typeBorder,
-    this.focusNode,
-    this.autoCorret,
-    this.autoFocus,
-    this.keyBoardType,
-    this.messageBottom,
-    this.messageIcon,
-  }) : super(key: key);
+  GenericInput(
+      {Key key,
+      @required this.labelInputText,
+      @required this.onKeyPressed,
+      this.obscureText = false,
+      this.labelInputTextStyle,
+      this.suffixAssetIcon,
+      this.suffixNetworkIcon,
+      this.inputFormatters,
+      this.typeBorder,
+      this.focusNode,
+      this.autoCorret,
+      this.autoFocus,
+      this.keyBoardType,
+      this.messageBottom,
+      this.messageBottomPathIcon,
+      this.messageBottomDataIcon,
+      this.messageBottomIsError,
+      this.messageBottomStyle})
+      : super(key: key);
 
   @override
-  _PBInputState createState() => _PBInputState();
+  _GenericInputState createState() => _GenericInputState();
 }
 
-class _PBInputState extends State<PBInput> implements _PBInputContract {
+class _GenericInputState extends State<GenericInput> implements _PBInputContract {
   bool textClean;
-  String _messageBottom;
-  String _messageBottonIcon;
-  bool _messageBottomIsError;
-  TextStyle _messageBottomStyle;
 
   final _controller = TextEditingController();
-  TextStyle _labelStyle;
 
   @override
   void dispose() {
@@ -97,33 +100,54 @@ class _PBInputState extends State<PBInput> implements _PBInputContract {
             enabledBorder: widget.typeBorder,
             border: widget.typeBorder,
             labelText: widget.labelInputText,
-            labelStyle: _labelStyle,
-            suffixIcon:
-                widget.suffixIcon != null ? _showIcon() : _messageIcon(),
+            labelStyle: widget.labelInputTextStyle,
+            suffixIcon: _getIcon(),
           ),
         ),
-        _messageBottom != null
+        widget.messageBottom != null
             ? _MessageBottom(
-                _messageBottom,
-                _MessageBottomIcon(_messageBottonIcon, _messageBottomIsError),
-                _messageBottomStyle)
+                widget.messageBottom,
+                _MessageBottomIcon(widget.messageBottomPathIcon,
+                    widget.messageBottomDataIcon, widget.messageBottomIsError),
+                widget.messageBottomStyle)
             : Container(height: 0),
       ],
     );
   }
 
-  Widget _messageIcon() {
-    print('Dont have Icon Setter');
+  Widget _getIcon() {
+    if (widget.suffixAssetIcon != null) {
+      return _showAssetIcon();
+    } else if (widget.suffixNetworkIcon != null) {
+      return _showNetworkIcon();
+    }
+    return _emptyIcon();
+  }
+
+  Widget _emptyIcon() {
     return SizedBox(
       height: 0,
     );
   }
 
-  Padding _showIcon() {
+  Padding _showNetworkIcon() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 10, 0, 0),
       child: IconButton(
-        icon: Image.asset(widget.suffixIcon,
+        icon: Image.network(widget.suffixNetworkIcon,
+            width: 30, height: 30, fit: BoxFit.contain),
+        onPressed: () {
+          setClearCurrentText();
+        },
+      ),
+    );
+  }
+
+  Padding _showAssetIcon() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 0, 0),
+      child: IconButton(
+        icon: Image.asset(widget.suffixAssetIcon,
             width: 30, height: 30, fit: BoxFit.contain),
         onPressed: () {
           setClearCurrentText();
@@ -136,7 +160,7 @@ class _PBInputState extends State<PBInput> implements _PBInputContract {
   setLabelStyle(Color color, double fontSize, FontWeight fontWeight,
       double letterSpacing) {
     setState(() {
-      _labelStyle = TextStyle(
+      widget.labelInputTextStyle = TextStyle(
           color: color,
           fontSize: fontSize,
           fontWeight: fontWeight,
@@ -147,14 +171,14 @@ class _PBInputState extends State<PBInput> implements _PBInputContract {
   @override
   setMessageBottom(String message) {
     setState(() {
-      _messageBottom = message;
+      widget.messageBottom = message;
     });
   }
 
   @override
-  setMessageBottomIcon(String pathIcon) {
+  setMessageBottomPathIcon(String pathIcon) {
     setState(() {
-      _messageBottonIcon = pathIcon;
+      widget.messageBottomPathIcon = pathIcon;
     });
   }
 
@@ -176,7 +200,7 @@ class _PBInputState extends State<PBInput> implements _PBInputContract {
   setStyleMessageBottom(Color color, double fontSize, FontWeight fontWeight,
       double letterSpacing) {
     setState(() {
-      _messageBottomStyle = TextStyle(
+      widget.messageBottomStyle = TextStyle(
           color: color,
           fontSize: fontSize,
           fontWeight: fontWeight,
@@ -188,18 +212,25 @@ class _PBInputState extends State<PBInput> implements _PBInputContract {
   setError(
       String messageBottom,
       String pathIconError,
+      IconData iconFlutter,
       bool isError,
       UnderlineInputBorder underlineInputBorderError,
       Color colorMessageBottom,
       double fontSizeMessageBottom,
       FontWeight fontWeightMessageBottom) {
+    if ((pathIconError == null || pathIconError.isEmpty) &&
+        iconFlutter != null) {
+      setMessageBottomDataIcon(iconFlutter);
+    } else if ((pathIconError != null && iconFlutter == null)) {
+      setMessageBottomPathIcon(pathIconError);
+    }
+
     setMessageBottom(messageBottom);
     setStyleMessageBottom(
         colorMessageBottom, fontSizeMessageBottom, fontWeightMessageBottom, .0);
-    setMessageBottomIcon(pathIconError);
     setUnderlineBorder(underlineInputBorderError);
     setState(() {
-      _messageBottomIsError = isError;
+      widget.messageBottomIsError = isError;
     });
   }
 
@@ -207,17 +238,31 @@ class _PBInputState extends State<PBInput> implements _PBInputContract {
   setClearCurrentText() {
     setState(() {
       _controller.clear();
+      setAssetIcon(null);
     });
   }
 
   @override
-  String getCurrentText() => _controller.text.toString();
+  setMessageBottomDataIcon(IconData iconData) {
+    setState(() {
+      widget.messageBottomDataIcon = iconData;
+    });
+  }
+
+  @override
+  setAssetIcon(String pathIcon) {
+    setState(() {
+      widget.suffixAssetIcon = pathIcon;
+    });
+  }
 }
 
 abstract class _PBInputContract {
   setMessageBottom(String message);
 
-  setMessageBottomIcon(String pathIcon);
+  setMessageBottomPathIcon(String pathIcon);
+
+  setMessageBottomDataIcon(IconData iconData);
 
   setUnderlineBorder(UnderlineInputBorder underlineInputBorder);
 
@@ -227,6 +272,7 @@ abstract class _PBInputContract {
   setError(
       String messageBottom,
       String pathIconError,
+      IconData iconFlutter,
       bool isError,
       UnderlineInputBorder underlineInputBorderError,
       Color colorMessageBottom,
@@ -238,9 +284,9 @@ abstract class _PBInputContract {
   setStyleMessageBottom(Color color, double fontSize, FontWeight fontWeight,
       double letterSpacing);
 
-  setClearCurrentText();
+  setAssetIcon(String pathIcon);
 
-  String getCurrentText();
+  setClearCurrentText();
 }
 
 // ignore: must_be_immutable
@@ -265,20 +311,19 @@ class _MessageBottomState extends State<_MessageBottom> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: <Widget>[
-            Padding(
-              padding: EdgeInsets.fromLTRB(0, 8, 0, 0),
-              child: Text(widget._messageBottom,
-                  style: widget._messageBottomStyle),
-            ),
-            Padding(
-                padding: const EdgeInsets.fromLTRB(0, 0, 4, 0),
-                child: widget._messageIcon)
-          ]),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 6, 0, 0),
+      child: Container(
+        child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
+              Text(widget._messageBottom, style: widget._messageBottomStyle),
+              Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 0, 8, 0),
+                  child: widget._messageIcon)
+            ]),
+      ),
     );
   }
 }
@@ -287,9 +332,11 @@ class _MessageBottomState extends State<_MessageBottom> {
 class _MessageBottomIcon extends StatefulWidget {
   bool isError;
   String pathIcon;
+  IconData iconData;
 
   _MessageBottomIcon(
     this.pathIcon,
+    this.iconData,
     this.isError,
   );
 
@@ -302,13 +349,25 @@ class _MessageBottomIconState extends State<_MessageBottomIcon> {
   Widget build(BuildContext context) {
     Widget out;
 
-    widget.isError != null
-        ? widget.isError
-            ? out = _getIcon()
-            : out = _getIconNull()
-        : out = _getIconNull();
+    widget.isError != null ? out = validate() : out = _getIconNull();
 
     return out;
+  }
+
+  Widget validate() {
+    if (widget.isError != null) {
+      return _getIcon(widget.isError);
+    } else {
+      if (widget.pathIcon != null) {
+        return IconButton(
+            icon: Image.asset(
+          widget.pathIcon,
+          width: 30,
+          height: 30,
+        ));
+      }
+      return Icon(widget.iconData);
+    }
   }
 
   Padding _getIconNull() {
@@ -316,13 +375,34 @@ class _MessageBottomIconState extends State<_MessageBottomIcon> {
         padding: const EdgeInsets.fromLTRB(0, 8, 0, 0), child: new Icon(null));
   }
 
-  Padding _getIcon() {
-    return Padding(
-        padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
-        child: new Icon(
-          Icons.error,
-          size: 20,
-          color: const Color(0xffb00020),
+  Widget _getIcon(bool isError) {
+    if (isError) {
+      if (widget.pathIcon != null) {
+        return IconButton(
+            icon: Image.asset(widget.pathIcon,
+                width: 30, height: 30, color: const Color(0xffb00020)));
+      }
+      if (widget.iconData != null) {
+        return Icon(widget.iconData, color: const Color(0xffb00020));
+      }
+      return Container(
+        height: 0,
+      );
+    } else {
+      if (widget.pathIcon != null) {
+        return IconButton(
+            icon: Image.asset(
+          widget.pathIcon,
+          width: 30,
+          height: 30,
         ));
+      }
+      if (widget.iconData != null) {
+        return Icon(widget.iconData);
+      }
+      return Container(
+        height: 0,
+      );
+    }
   }
 }
