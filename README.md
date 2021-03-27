@@ -1,2 +1,2 @@
 # GenericInputField
-Componente baseado no TextField para criar comportamentos genericos.
+Componente baseado no TextField para criar comportamentos genericos. Flutter App :D
